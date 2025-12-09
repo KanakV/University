@@ -30,12 +30,10 @@ All outputs are mapped to **Plutchik’s Wheel of Emotions**, enabling valence�
 ```
 ED3010-HFD/
 │
-├── src/                     # Code for Text2Emotion, Music2Emotion, dashboards
+├── app/                     # Code for Text2Emotion, Music2Emotion, dashboards
 ├── data/                    # Summaries, embeddings, metadata
-├── notebooks/               # Prototyping & analysis
-├── models/                  # Saved weights / configs
 ├── docs/                    # Documentation files
-├── Final Report.pdf         # Submitted academic report
+├── requirements.txt         # Required python libraries
 └── README.md
 ```
 
