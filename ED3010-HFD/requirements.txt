@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+transformers
+torch
+soundfile
+numpy
+ffmpeg-python
