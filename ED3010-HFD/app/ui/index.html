@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emotion Classifier • Polished UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root{color-scheme:dark}
+      body{font-family:'Inter', 'Helvetica Neue', Poppins, sans-serif;background:radial-gradient(circle at top,#0b0b0b 0%,#000 75%);color:#e6eef8;min-height:100vh}
+      /* Sidebar */
+      .sidebar{background:linear-gradient(180deg,#0f1724, #071123);backdrop-filter:blur(6px);}
+      .brand{letter-spacing:0.14em}
+      /* emotion color map helpers */
+      .emo-happy{--emo:#f6c84c}
+      .emo-sad{--emo:#4b7bec}
+      .emo-angry{--emo:#eb3b5a}
+      .emo-calm{--emo:#20bf6b}
+      .emo-fear{--emo:#8854d0}
+      .emo-surprise{--emo:#fed330}
+      .emo-love{--emo:#fc5c65}
+      .emo-neutral{--emo:#9aa4b2}
+      .emo-default{--emo:#ffffff33}
+      .emotion-pill{background:linear-gradient(90deg,var(--emo),transparent);box-shadow:0 6px 24px rgba(0,0,0,0.5);}
+
+      /* history item expanded */
+      .history-card{transition:transform .25s ease,box-shadow .25s ease}
+      .history-card:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(2,6,23,0.6)}
+
+      /* mobile drawer */
+      .drawer-backdrop{background:linear-gradient(180deg,rgba(2,6,23,0.6),rgba(2,6,23,0.9))}
+
+      /* small utilities */
+      .scroll-x{overflow-x:auto;scrollbar-color:#2b2b2b transparent}
+
+      /* progress bar */
+      .progress-bar{height:10px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));}
+      .progress-fill{height:10px;border-radius:999px}
+
+      @media(min-width:1024px){
+        main{margin-left:260px}
+      }
+    </style>
+  </head>
+  <body class="antialiased">
+    <!-- Desktop static sidebar + Mobile drawer -->
+    <aside class="fixed left-0 top-0 h-full w-64 hidden lg:flex flex-col sidebar text-slate-100 z-40 p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded bg-red-600 flex items-center justify-center font-bold">N</div>
+        <div>
+          <div class="text-xl font-extrabold brand">NETFLIX</div>
+          <div class="text-xs text-slate-400">Mood Discovery</div>
+        </div>
+      </div>
+
+      <nav class="flex-1 mt-4">
+        <ul class="space-y-2 text-sm">
+          <li><a href="#hero" class="flex items-center gap-3 py-2 px-3 rounded hover:bg-white/5">🏠 <span>Home</span></a></li>
+          <li><a href="#actions" class="flex items-center gap-3 py-2 px-3 rounded hover:bg-white/5">🎵 <span>Analyze</span></a></li>
+          <li><a href="#historySection" class="flex items-center gap-3 py-2 px-3 rounded hover:bg-white/5">📜 <span>History</span></a></li>
+          <li><a href="#recommendationSection" class="flex items-center gap-3 py-2 px-3 rounded hover:bg-white/5">✨ <span>Recommendations</span></a></li>
+        </ul>
+      </nav>
+
+      <div class="mt-auto text-xs text-slate-400">
+        <div class="mb-2">Model: <span class="font-medium">CLAP / GoEmotions</span></div>
+        <div class="text-2xs">Status: <span id="modelStatus">Loading...</span></div>
+      </div>
+    </aside>
+
+    <!-- mobile top nav -->
+    <header class="lg:hidden fixed top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur p-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="openDrawer" aria-label="Open menu" class="p-2 rounded bg-white/5">☰</button>
+        <div class="text-lg font-bold">NETFLIX</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openMusicModal()" class="px-3 py-2 rounded bg-red-600 text-white text-sm">Analyze</button>
+      </div>
+    </header>
+
+    <!-- drawer for mobile -->
+    <div id="drawer" class="fixed inset-0 z-50 hidden">
+      <div id="drawerBackdrop" class="absolute inset-0 drawer-backdrop" onclick="closeDrawer()"></div>
+      <div class="absolute left-0 top-0 bottom-0 w-72 bg-slate-900 p-5 text-slate-100 shadow-xl">
+        <div class="flex items-center justify-between mb-6">
+          <div class="font-bold">Menu</div>
+          <button onclick="closeDrawer()" class="p-2 rounded bg-white/5">✕</button>
+        </div>
+        <nav>
+          <ul class="space-y-3 text-sm">
+            <li><a href="#hero" class="block py-2 px-2 rounded hover:bg-white/5" onclick="closeDrawer()">Home</a></li>
+            <li><a href="#actions" class="block py-2 px-2 rounded hover:bg-white/5" onclick="closeDrawer()">Analyze</a></li>
+            <li><a href="#historySection" class="block py-2 px-2 rounded hover:bg-white/5" onclick="closeDrawer()">History</a></li>
+            <li><a href="#recommendationSection" class="block py-2 px-2 rounded hover:bg-white/5" onclick="closeDrawer()">Recommendations</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <main class="min-h-screen transition-all">
+      <section id="hero" class="min-h-[58vh] flex items-end pt-28 pb-12 px-6 lg:px-12">
+        <div class="max-w-5xl">
+          <p class="text-sm text-red-400 uppercase tracking-wide">Original · Mood Discovery</p>
+          <h1 class="text-4xl lg:text-6xl font-extrabold mt-4 leading-tight">Feel Every Beat.<br/><span class="text-slate-300">Decode Every Scene.</span></h1>
+          <p class="mt-4 text-slate-300 max-w-2xl">Upload music tracks or episode transcripts and experience Netflix-style mood insights powered by AI.</p>
+
+          <div class="mt-6 flex gap-3 flex-wrap">
+            <button onclick="openMusicModal()" class="px-5 py-3 bg-red-600 rounded font-semibold">Analyze Music</button>
+            <button onclick="openTextModal()" class="px-5 py-3 border border-white/10 rounded text-slate-200">Analyze Episode</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACTION CARDS -->
+      <section id="actions" class="px-6 lg:px-12 pb-8">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold">Analyzers</h2>
+          <div class="text-sm text-slate-400">Click a card to open the analyzer</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div id="musicTile" class="p-6 rounded-xl bg-gradient-to-br from-red-800/70 to-red-600/40 cursor-pointer shadow-md">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs text-slate-200 uppercase">Original</p>
+                <h3 class="text-2xl font-bold mt-2">Music Emotion</h3>
+                <p class="mt-2 text-slate-300 text-sm">Upload any song or audio to detect the dominant mood instantly.</p>
+              </div>
+              <div class="text-sm text-slate-100">🎧</div>
+            </div>
+            <div class="mt-4 flex items-center justify-between">
+              <div class="text-xs text-slate-200">Quick analyze</div>
+              <button onclick="openMusicModal()" class="px-3 py-2 rounded bg-white/10">Open</button>
+            </div>
+          </div>
+
+          <div id="textTile" class="p-6 rounded-xl bg-gradient-to-br from-sky-800/60 to-sky-600/30 cursor-pointer shadow-md">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs text-slate-200 uppercase">Original</p>
+                <h3 class="text-2xl font-bold mt-2">Episode Emotion</h3>
+                <p class="mt-2 text-slate-300 text-sm">Upload any transcript (.txt) to decode the emotional tone.</p>
+              </div>
+              <div class="text-sm text-slate-100">📜</div>
+            </div>
+            <div class="mt-4 flex items-center justify-between">
+              <div class="text-xs text-slate-200">Transcript analysis</div>
+              <button onclick="openTextModal()" class="px-3 py-2 rounded bg-white/10">Open</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HISTORY -->
+      <section id="historySection" class="px-6 lg:px-12 pb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-bold">Analysis History</h2>
+          <div class="text-sm text-slate-400">Recent uploads and results</div>
+        </div>
+
+        <div id="historyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- JS will populate history cards here -->
+        </div>
+      </section>
+
+      <!-- RECOMMENDATIONS -->
+      <section id="recommendationSection" class="px-6 lg:px-12 pb-24">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-bold">Because you felt this...</h2>
+          <div class="text-sm text-slate-400">Top matches from your emotional library</div>
+        </div>
+
+        <div id="recommendationsRow" class="scroll-x flex gap-4 py-2">
+          <!-- JS populated recommendation cards -->
+        </div>
+      </section>
+    </main>
+
+    <!-- MUSIC MODAL -->
+    <div id="musicModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/60" onclick="closeModal('musicModal')"></div>
+      <div class="relative w-full max-w-lg bg-slate-900 rounded-2xl p-6 border border-white/5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold text-red-400">Upload Music</h3>
+          <button onclick="closeModal('musicModal')" class="p-2 rounded bg-white/5">✕</button>
+        </div>
+        <form id="musicForm" class="space-y-4">
+          <input id="audioFile" type="file" accept="audio/*" class="w-full rounded bg-black/50 border border-white/10 p-3 text-sm" />
+          <button type="submit" class="w-full py-3 bg-red-600 rounded font-semibold">Analyze</button>
+        </form>
+        <div id="musicResult" class="mt-4 text-sm text-slate-300"></div>
+      </div>
+    </div>
+
+    <!-- TEXT MODAL -->
+    <div id="textModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/60" onclick="closeModal('textModal')"></div>
+      <div class="relative w-full max-w-lg bg-slate-900 rounded-2xl p-6 border border-white/5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold text-sky-400">Upload Transcript</h3>
+          <button onclick="closeModal('textModal')" class="p-2 rounded bg-white/5">✕</button>
+        </div>
+        <form id="textForm" class="space-y-4">
+          <input id="textFile" type="file" accept=".txt" class="w-full rounded bg-black/50 border border-white/10 p-3 text-sm" />
+          <button type="submit" class="w-full py-3 bg-sky-600 rounded font-semibold">Analyze</button>
+        </form>
+        <div id="textResult" class="mt-4 text-sm text-slate-300"></div>
+      </div>
+    </div>
+
+    <script>
+      // --- Small utilities
+      const EMOTION_COLOR = {
+        happy: 'emo-happy',
+        sad: 'emo-sad',
+        angry: 'emo-angry',
+        calm: 'emo-calm',
+        fear: 'emo-fear',
+        surprise: 'emo-surprise',
+        love: 'emo-love',
+        neutral: 'emo-neutral'
+      };
+
+      function mapEmotionToCss(em) {
+        if (!em) return 'emo-default';
+        em = em.toLowerCase();
+        return EMOTION_COLOR[em] || 'emo-default';
+      }
+
+      // Drawer controls
+      const drawer = document.getElementById('drawer');
+      function openDrawer(){drawer.classList.remove('hidden')}
+      function closeDrawer(){drawer.classList.add('hidden')}
+      document.getElementById('openDrawer').addEventListener('click', openDrawer);
+
+      // Modal controls
+      function openMusicModal(){document.getElementById('musicModal').classList.remove('hidden')}
+      function openTextModal(){document.getElementById('textModal').classList.remove('hidden')}
+      function closeModal(id){document.getElementById(id).classList.add('hidden')}
+
+      // Model status
+      document.getElementById('modelStatus').innerText = 'Ready';
+
+      // Fill history and recommendations by fetching existing endpoints if server renders nothing
+      async function refreshHistory(){
+        try{
+          // Try to fetch /history.json (not implemented server-side) or rely on API responses
+          // For now: keep a small client-side history stored in localStorage
+          const hist = JSON.parse(localStorage.getItem('history') || '[]');
+          renderHistory(hist);
+          renderRecommendations(hist);
+        }catch(e){console.warn(e)}
+      }
+
+      function renderHistory(arr){
+        const container = document.getElementById('historyGrid');
+        container.innerHTML = '';
+        if(!arr.length){
+          container.innerHTML = '<div class="p-6 bg-white/3 rounded">No history yet — run an analysis to see entries.</div>';
+          return;
+        }
+
+        arr.forEach((rec, i) => {
+          const emoClass = mapEmotionToCss(rec.emotion || 'neutral');
+          const card = document.createElement('div');
+          card.className = `p-4 rounded-xl history-card ${emoClass} bg-gradient-to-br from-white/3 to-black/10 border border-white/5`;
+          card.innerHTML = `
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="text-xs text-slate-300">${rec.filename || 'upload'}</div>
+                <div class="text-lg font-semibold mt-1">${rec.emotion || 'Unknown'}</div>
+                <div class="text-xs text-slate-400 mt-2">${rec.timestamp || ''}</div>
+              </div>
+              <div class="text-sm text-slate-200">${i+1}</div>
+            </div>
+            <div class="mt-3 space-y-2">
+              ${Object.entries(rec.scores || {}).map(([k,v])=>{
+                const p = Math.max(0, Math.min(1, Number(v)||0));
+                return `<div class="space-y-1">
+                  <div class="flex items-center justify-between text-xs text-slate-300"><span>${k}</span><span>${(p<0.01?0:p).toFixed(3)}</span></div>
+                  <div class="progress-bar"><div class="progress-fill rounded" style="width:${Math.round(p*100)}%;background:linear-gradient(90deg,var(--emo),rgba(255,255,255,0.05))"></div></div>
+                </div>`;
+              }).join('')}
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button class="px-3 py-1 rounded bg-white/5 text-sm" onclick="replay(${i})">Play</button>
+              <button class="px-3 py-1 rounded bg-red-600 text-sm" onclick="removeHistory(${i})">Delete</button>
+            </div>
+          `;
+          // attach emotion CSS class variable to fill gradient
+          card.querySelectorAll('.progress-fill').forEach(el=>el.style.setProperty('--emo', getComputedStyle(document.documentElement).getPropertyValue('--emo')));
+          container.appendChild(card);
+        });
+      }
+
+      function renderRecommendations(hist){
+        const r = document.getElementById('recommendationsRow');
+        r.innerHTML = '';
+        if(!hist.length){
+          r.innerHTML = '<div class="p-4 text-slate-400">No recommendations yet.</div>';
+          return;
+        }
+        // naive: show most recent 6
+        const items = hist.slice(0,6);
+        items.forEach(item=>{
+          const card = document.createElement('div');
+          const emoClass = mapEmotionToCss(item.emotion||'neutral');
+          card.className = `p-4 rounded-xl min-w-[200px] ${emoClass} bg-gradient-to-br border border-white/5`;
+          card.innerHTML = `<div class="text-sm text-slate-200 font-semibold">${item.emotion}</div><div class="text-xs text-slate-400 mt-2">${item.filename}</div>`;
+          r.appendChild(card);
+        });
+      }
+
+      function saveToHistory(record){
+        const hist = JSON.parse(localStorage.getItem('history')||'[]');
+        hist.unshift(record);
+        localStorage.setItem('history', JSON.stringify(hist.slice(0,50)));
+        refreshHistory();
+      }
+
+      function removeHistory(idx){
+        const hist = JSON.parse(localStorage.getItem('history')||'[]');
+        hist.splice(idx,1);
+        localStorage.setItem('history', JSON.stringify(hist));
+        refreshHistory();
+      }
+
+      function replay(i){
+        alert('Replay not implemented in this demo.');
+      }
+
+      // --- Forms handling (calls your existing endpoints)
+      const musicForm = document.getElementById('musicForm');
+      const musicResult = document.getElementById('musicResult');
+      musicForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const fileInput = document.getElementById('audioFile');
+        if(!fileInput.files.length){alert('Upload an audio file.');return}
+        musicResult.innerHTML = '<div class="text-slate-400">Analyzing…</div>';
+        const fd = new FormData(); fd.append('file', fileInput.files[0]);
+        try{
+          const res = await fetch('/analyze/',{method:'POST',body:fd});
+          const data = await res.json();
+          if(data.error){musicResult.innerHTML = `<div class="text-red-400">${data.error}</div>`;return}
+          musicResult.innerHTML = `<div class="p-3 rounded bg-white/5"><div class="font-semibold">${data.emotion}</div><div class="text-xs text-slate-300 mt-1">${data.timestamp}</div></div>`;
+          saveToHistory(data);
+          closeModal('musicModal');
+        }catch(err){musicResult.innerHTML = `<div class="text-red-400">${err}</div>`}
+      });
+
+      const textForm = document.getElementById('textForm');
+      const textResult = document.getElementById('textResult');
+      textForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const fileInput = document.getElementById('textFile');
+        if(!fileInput.files.length){alert('Upload a transcript (.txt)');return}
+        textResult.innerHTML = '<div class="text-slate-400">Analyzing…</div>';
+        const fd = new FormData(); fd.append('file', fileInput.files[0]);
+        try{
+          const res = await fetch('/analyze_text/',{method:'POST',body:fd});
+          const data = await res.json();
+          if(data.error){textResult.innerHTML = `<div class="text-red-400">${data.error}</div>`;return}
+          textResult.innerHTML = `<div class="p-3 rounded bg-white/5"><div class="font-semibold">${data.emotion}</div><div class="text-xs text-slate-300 mt-1">${data.timestamp}</div></div>`;
+          saveToHistory(data);
+          closeModal('textModal');
+        }catch(err){textResult.innerHTML = `<div class="text-red-400">${err}</div>`}
+      });
+
+      // Init
+      refreshHistory();
+
+      // Attach click behavior to big tiles
+      document.getElementById('musicTile').addEventListener('click', openMusicModal);
+      document.getElementById('textTile').addEventListener('click', openTextModal);
+    </script>
+  </body>
+</html>

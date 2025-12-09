@@ -1,72 +1,103 @@
+# Emotion-Driven Recommendation System
 
-# Emotion-Driven Recommendation System  
-### Final Project – ED3010: Human Factors Design  
+### Final Project – ED3010: Human Factors Design
 **Indian Institute of Technology Madras**
 
-**Authors:**  
-- **Kanak Varma – ED23B027**  
-- **Manan Agarwal – ED23B052**  
-- **Gururaj Thorat – ED23B065**
+**Authors:**
+- **Kanak Varma**
+- **Manan Agarwal**
+- **Gururaj Thorat**
 
 ---
 
 ## 📘 Project Overview
 
-This repository contains all code, datasets, documentation, and prototypes developed for our **Emotion-Driven Recommendation System**, created as part of the **ED3010 – Human Factors Design** course.
+This system addresses decision fatigue on streaming platforms by recommending content based on the user’s emotional state. It consists of two main components:
+1.  **Offline Data Pipeline**: Automates the scraping and emotional analysis of TV show plots (Text2Emotion).
+2.  **Interactive Web Dashboard**: A FastAPI-based web application that performs real-time emotion classification on uploaded audio (Music2Emotion) and text.
 
-Our project addresses **decision fatigue on streaming platforms** by building a multimodal system that recommends content based on the **user’s emotional state**.  
-We integrate three complementary pipelines:
+## 📂 Project Structure
 
-1. **Text2Emotion** — Transformer-based NLP on episode plot summaries  
-2. **Music2Emotion** — Audio emotion classification using CLAP embeddings  
-3. **Future Emotion Capture** — Behavioral signal–based emotion detection framework  
-
-All outputs are mapped to **Plutchik’s Wheel of Emotions**, enabling valence–arousal–based recommendations.
-
+```text
+.
+├── app/
+│   ├── app.py                # [WEB] Main FastAPI application
+│   ├── ui/                   # [WEB] Frontend HTML/templates
+│   ├── wiki scraper/         # [PIPELINE] Scraper & analysis scripts
+│   └── uploads/              # [WEB] Temp storage for uploaded files
+├── data/
+│   ├── show_names.txt        # [INPUT] List of shows to scrape
+│   ├── plots/                # [OUTPUT] Scraped JSON plots
+│   └── audio/                # Audio samples
+├── result/
+│   ├── cv/                   # [OUTPUT] Final CSV reports
+│   └── *.json                # [OUTPUT] Classified sentiment data
+├── requirements.txt          # Python dependencies
+└── README.md                 # Project documentation
+```
 ---
+⚙️ Installation & Setup
+Before running the dashboard or analysis pipeline, ensure your environment is configured correctly.
 
-## 📂 Repository Structure
+Prerequisites
 
-```
-ED3010-HFD/
-│
-├── app/                     # Code for Text2Emotion, Music2Emotion, dashboards
-├── data/                    # Summaries, embeddings, metadata
-├── docs/                    # Documentation files
-├── requirements.txt         # Required python libraries
-└── README.md
-```
+Python 3.8 or higher
 
----
+pip (Python Package Manager)
 
-## 🔧 How to Run
+ffmpeg (Required for audio processing in Music2Emotion)
 
-### 1. Clone repository  
-```bash
-git clone https://github.com/KanakV/University.git
-cd University/ED3010-HFD
-```
+Dependencies Install all required libraries using the provided requirements file:
 
-### 2. Install dependencies  
-```bash
+Bash
+
 pip install -r requirements.txt
-```
+🖥️ Interactive Dashboard (Web App)
+The project includes a FastAPI web interface for real-time emotion analysis of audio files and text inputs.
 
-### 3. Run Text2Emotion  
-```bash
-python src/text2emotion.py
-```
+How to Launch
+Navigate to the project root directory.
 
-### 4. Run Music2Emotion  
-```bash
-python src/music2emotion.py
-```
+Start the server using uvicorn:
 
-### 5. Launch dashboard  
-```bash
-uvicorn app.main:app --reload
-```
+Bash
 
+uvicorn app.app:app --reload
+Open your web browser and go to:
+
+http://127.0.0.1:8000
+
+Features
+🎵 Music Analysis: Upload .wav or .mp3 files to detect emotions using the CLAP model.
+
+📝 Text Analysis: Type or paste plot summaries to extract sentiment using RoBERTa.
+
+🔄 Offline Data Pipeline
+Automate the scraping and processing of TV show plots for the recommendation engine.
+
+1. Configure Inputs
+Edit data/show_names.txt to include the Wikipedia titles of the shows you wish to analyze (one per line).
+
+Example: "The Office (American TV series)"
+
+2. Run Automation Script
+Execute the master script to scrape data, classify emotions, and generate reports:
+
+Bash
+
+# Make script executable (first time only)
+chmod +x app/wiki_scraper/run_all.sh
+
+# Run the pipeline
+./app/wiki_scraper/run_all.sh
+3. Manual Execution
+If you prefer running modules individually:
+
+Scraper: python3 app/wiki_scraper/wiki_scraper.py --names-file data/show_names.txt
+
+Classification: python3 app/wiki_scraper/classifier_multi.py --plots-dir data/plots --out-dir result
+
+Reporting: python3 app/wiki_scraper/post_processing.py --indir result --out result/cv/sentiment_counts.csv
 ---
 
 ## 📝 Summary of Methods

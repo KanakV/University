@@ -6,4 +6,5 @@ transformers
 torch
 soundfile
 numpy
-ffmpeg-python
+scipy
+torchaudio
